@@ -30,8 +30,11 @@ class DatabaseUtil:
         self.session = Session()
 
     def add_user(self, user):
+        print('hello')
         self.session.add(user)
+        print('ok')
         self.session.commit()
+        print('bye')
 
     def get_all_users(self):
         return self.session.query(User).all()
