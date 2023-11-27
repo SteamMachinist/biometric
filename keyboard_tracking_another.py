@@ -37,14 +37,19 @@ def on_key_release(key):
             key_press_durations[key_str] = []
 
         key_press_durations[key_str].append(duration)
-        key_press_start.pop(key_str)
 
-        if key_str in key_intervals:
-            last_release = key_intervals[key_str][-1]
+        if len(key_intervals) > 0:
+            last_release = key_press_start[key_str] #key_intervals[list(key_intervals.keys())[-1]][-1]
             interval = timestamp - last_release
+            # if interval > 10:
+            #     interval = -interval / 10000000000
+            if key_str not in key_intervals:
+                key_intervals[key_str] = []
             key_intervals[key_str].append(interval)
         else:
             key_intervals[key_str] = [0.0]
+
+        key_press_start.pop(key_str)
 
 
 def start_tracking():

@@ -31,6 +31,8 @@ def on_key_release(event):
         if key in key_intervals:
             last_release = key_intervals[key][-1]
             interval = timestamp - last_release
+            # if interval > 10:
+            #     interval = -interval / 10000000000
             key_intervals[key].append(interval)
         else:
             key_intervals[key] = [0.0]
