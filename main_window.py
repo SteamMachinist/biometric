@@ -3,6 +3,7 @@ import random
 from PyQt5 import QtWidgets
 from main_window_ui import Ui_MainWindow as MainWindowUI
 from keyboard_tracking_another import start_tracking, stop_tracking
+from database_utils import User, DatabaseUtil
 
 import string
 
@@ -15,9 +16,10 @@ punctuation = string.punctuation
 
 
 class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
-    def __init__(self):
+    def __init__(self, database_util):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+        self.database_util = database_util
         self.lineEditPasswordStrength.setReadOnly(True)
         self.show()
         self.pushButtonGeneratePassword.clicked.connect(self.generate_password)
@@ -25,8 +27,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.current_alphabet = ''
         self.current_length = 0
         self.lineEditRegistrationPassword.installEventFilter(self)
-        self.pushButtonRegister.clicked.connect(self.stop_tracking)
-        self.tracking = False
+        self.pushButtonRegister.clicked.connect(self.stop_tracking_password)
 
     def generate_password(self):
         length = self.spinBoxPasswordLength.value()
@@ -73,36 +74,49 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         p = (v * t) / (a * l1)
         self.lineEditPasswordStrength.setText(str(p))
 
-    def start_tracking(self):
-        print("Tracking started")
-        self.tracking = True
+    def start_tracking_password(self):
+        stop_tracking()
         start_tracking()
 
     @staticmethod
-    def transform(d, s):
-        result = []
-        ordered = []
-        for char in s:
+    def transform(feature_dict, reference_str):
+        feature_readable = []
+        feature = []
+        for char in reference_str:
             key = char
-            durations = d[key]
+            features_from_dict = feature_dict[key]
 
-            if durations:
-                duration = durations.pop(0)  # Remove the first duration from the list
-                result.append((key, duration))
-                # ordered.append(duration)
-        return result
+            if features_from_dict:
+                feature_value = features_from_dict.pop(0)
+                feature_readable.append((key, feature_value))
+                feature.append(feature_value)
+        return feature_readable, feature
 
-    def stop_tracking(self):
-        print("Tracking stopped")
-        self.tracking = False
+    def stop_tracking_password(self):
         durations, intervals = stop_tracking()
-        print(self.transform(durations, self.lineEditRegistrationPassword.text()))
-        print(self.transform(intervals, self.lineEditRegistrationPassword.text()))
+        password = self.lineEditRegistrationPassword.text()
+        durations_readable, durations_feature = self.transform(durations, password)
+        intervals_readable, intervals_feature = self.transform(intervals, password)
+        print(durations_readable)
+        print(intervals_readable)
+        self.register_user(durations_feature, intervals_feature)
+
+    def register_user(self, durations_feature, intervals_feature):
+        user = User(username=self.lineEditUsername,
+                    password=self.lineEditRegistrationPassword.text(),
+                    intervals=intervals_feature,
+                    durations=durations_feature)
+        self.database_util.add_user(user)
+        self.update_users_table()
+
+    def update_users_table(self):
+        users = self.database_util.get_all_users()
+        print(users)
 
     def eventFilter(self, obj, event):
         if obj == self.lineEditRegistrationPassword:
             if event.type() == event.FocusIn:
-                self.start_tracking()
-            elif event.type() == event.FocusOut and not self.tracking:
-                self.stop_tracking()
+                self.start_tracking_password()
+            elif event.type() == event.FocusOut:
+                pass
         return super().eventFilter(obj, event)
