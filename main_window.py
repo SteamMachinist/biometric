@@ -104,8 +104,8 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
     def register_user(self, durations_feature, intervals_feature):
         user = User(username=self.lineEditUsername,
                     password=self.lineEditRegistrationPassword.text(),
-                    intervals=intervals_feature,
-                    durations=durations_feature)
+                    intervals=', '.join(intervals_feature),
+                    durations=', '.join(durations_feature))
         self.database_util.add_user(user)
         self.update_users_table()
 

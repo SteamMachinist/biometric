@@ -12,8 +12,8 @@ class User(Base):
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     username = Column(String(50))
     password = Column(String(50))
-    intervals = Column(ARRAY(FLOAT))
-    durations = Column(ARRAY(FLOAT))
+    intervals = Column(String)
+    durations = Column(String)
 
 
 class DatabaseUtil:
