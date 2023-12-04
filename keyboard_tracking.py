@@ -31,7 +31,7 @@ def on_key_release(key):
 
     if key_str in key_press_start:
         press_start = key_press_start[key_str]
-        duration = timestamp - press_start
+        duration = int((timestamp - press_start) * 1000)
 
         if key_str not in key_press_durations:
             key_press_durations[key_str] = []
@@ -40,7 +40,7 @@ def on_key_release(key):
 
         if len(key_intervals) > 0:
             last_release = key_press_start[key_str]
-            interval = timestamp - last_release
+            interval = int((timestamp - last_release) * 1000)
             if key_str not in key_intervals:
                 key_intervals[key_str] = []
             key_intervals[key_str].append(interval)

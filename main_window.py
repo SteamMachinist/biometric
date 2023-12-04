@@ -1,9 +1,11 @@
 import random
 
 from PyQt5 import QtWidgets
+
 from main_window_ui import Ui_MainWindow as MainWindowUI
 from keyboard_tracking import start_tracking, stop_tracking
 from database_utils import User
+import numpy as np
 
 import string
 
@@ -26,11 +28,15 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.current_alphabet = ''
         self.current_length = 0
         self.lineEditRegistrationPassword.installEventFilter(self)
+        self.lineEditAuthPassword.installEventFilter(self)
         self.pushButtonRegister.clicked.connect(self.stop_tracking_password)
         self.database_util = database_util
         self.registrationVariants = []
-        self.pushButtonReset(self.reset_registration)
-        self.pushButtonAuthorize(self.authorize)
+        self.pushButtonReset.clicked.connect(self.reset_registration)
+        self.pushButtonAuthorize.clicked.connect(self.authorize)
+        self.currentPassword = ''
+        self.update_users_table()
+        self.tableWidgetUsersList.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
 
     def generate_password(self):
         length = self.spinBoxPasswordLength.value()
@@ -81,6 +87,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.registrationVariants.clear()
         self.lineEditRegistrationPassword.clear()
         self.lineEditUsername.clear()
+        self.currentPassword = ''
         self.textBrowserRegisterLog.append("Сброс")
 
     @staticmethod
@@ -108,26 +115,92 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         intervals_readable, intervals_feature = self.transform(intervals, password)
         self.register_user(intervals_feature)
 
+    def stop_tracking_password_auth(self):
+        _, intervals = stop_tracking()
+        password = self.lineEditAuthPassword.text()
+        intervals_readable, intervals_feature = self.transform(intervals, password)
+        return intervals_feature
+
+    def form_min_max_vector(self):
+        maxs = np.array(self.registrationVariants).max(axis=0)
+        mins = np.array(self.registrationVariants).min(axis=0)
+        return mins.tolist(), maxs.tolist()
+
     def register_user(self, intervals_feature):
+        if len(self.registrationVariants) == 0:
+            self.currentPassword = self.lineEditRegistrationPassword.text()
+        elif self.currentPassword != self.lineEditRegistrationPassword.text():
+            self.textBrowserRegisterLog.append("Пароли не совпадают")
+            self.reset_registration()
+
         self.registrationVariants.append(intervals_feature)
         self.textBrowserRegisterLog.append(f"{len(self.registrationVariants)}/5 вариантов:{intervals_feature}")
         if len(self.registrationVariants) == 5:
+            mins, maxs = self.form_min_max_vector()
             user = User(username=self.lineEditUsername.text(),
                         password=self.lineEditRegistrationPassword.text(),
-                        intervals=', '.join(str(f) for f in intervals_feature))
+                        intervals_min=', '.join(str(f) for f in mins),
+                        intervals_max=', '.join(str(f) for f in maxs))
             self.database_util.add_user(user)
             self.textBrowserRegisterLog.append(f"Успешная регистрация {user.username}")
+            self.reset_registration()
             self.update_users_table()
 
+        self.lineEditRegistrationPassword.clear()
+
     def update_users_table(self):
+        self.tableWidgetUsersList.clear()
         users = self.database_util.get_all_users()
-        print(users)
+        rows = len(users)
+        columns = 2
+        self.tableWidgetUsersList.setRowCount(rows)
+        self.tableWidgetUsersList.setColumnCount(columns)
+        self.tableWidgetUsersList.setHorizontalHeaderLabels(['Имя пользователя', 'Пароль'])
+        users = [[user.username, user.password] for user in users]
+        for i in range(rows):
+            for j in range(columns):
+                self.tableWidgetUsersList.setItem(i, j, QtWidgets.QTableWidgetItem(users[i][j]))
+        self.tableWidgetUsersList.setColumnWidth(0, 130)
+        self.tableWidgetUsersList.setColumnWidth(1, 100)
+
+    def reset_auth(self):
+        self.lineEditAuthPassword.clear()
+        self.lineEditAuthUsername.clear()
+        self.textBrowserAutorizeLog.append("Сброс")
 
     def authorize(self):
-        pass
+        features = self.stop_tracking_password_auth()
+        username = self.lineEditAuthUsername.text()
+        user = self.database_util.select_by_username(username)
+        if user is None:
+            self.textBrowserAutorizeLog.append("Имя пользователя не найдено")
+            self.reset_auth()
+            return
+        password = self.lineEditAuthPassword.text()
+        if user.password != password:
+            self.textBrowserAutorizeLog.append("Неверный пароль")
+            self.reset_auth()
+            return
+        mins = [float(value) for value in user.intervals_min.split(', ')]
+        maxs = [float(value) for value in user.intervals_max.split(', ')]
+        e = []
+        for i in range(len(features)):
+            e.append(1 if mins[i] <= features[i] <= maxs[i] else 0)
+        if sum(e) / float(len(e)) >= 0.5:
+            self.textBrowserAutorizeLog.append(f"Успешно авторизован в {user.username}")
+        else:
+            self.textBrowserAutorizeLog.append("Чужой биометрический признак")
+        self.reset_auth()
+
+
 
     def eventFilter(self, obj, event):
         if obj == self.lineEditRegistrationPassword:
+            if event.type() == event.FocusIn:
+                self.start_tracking_password()
+            elif event.type() == event.FocusOut:
+                pass
+        if obj == self.lineEditAuthPassword:
             if event.type() == event.FocusIn:
                 self.start_tracking_password()
             elif event.type() == event.FocusOut:

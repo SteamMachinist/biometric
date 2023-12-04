@@ -12,7 +12,8 @@ class User(Base):
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
     username = Column(String(50))
     password = Column(String(50))
-    intervals = Column(String)
+    intervals_min = Column(String)
+    intervals_max = Column(String)
 
 
 class DatabaseUtil:
@@ -34,3 +35,6 @@ class DatabaseUtil:
 
     def get_all_users(self):
         return self.session.query(User).all()
+
+    def select_by_username(self, username):
+        return self.session.query(User).filter_by(username=username).first()
