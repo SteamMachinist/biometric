@@ -1,17 +1,11 @@
 import random
-import os
 
 from PyQt5 import QtWidgets
 from main_window_ui import Ui_MainWindow as MainWindowUI
-from keyboard_tracking_another import start_tracking, stop_tracking
-# from database_utils import User, DatabaseUtil
+from keyboard_tracking import start_tracking, stop_tracking
+from database_utils import User
 
 import string
-
-from sqlalchemy import create_engine, Column, Integer, String, Sequence, ARRAY, FLOAT
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
 
 latin_lower = string.ascii_lowercase
 latin_upper = string.ascii_uppercase
@@ -20,41 +14,11 @@ cyrillic_upper = ''.join([chr(code) for code in range(1040, 1072)])
 digits = string.digits
 punctuation = string.punctuation
 
-Base = declarative_base()
-
-class User(Base):
-    __tablename__ = 'users'
-    id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    username = Column(String(50))
-    password = Column(String(50))
-    intervals = Column(String)
-
-# Create an in-memory SQLite database
-db_folder = 'database'
-os.makedirs(db_folder, exist_ok=True)
-db_path = os.path.join(db_folder, 'biometric.db')
-engine = create_engine(f'sqlite:///{db_path}')
-
-# Create the table
-Base.metadata.create_all(engine)
-
-# Create a session
-Session = sessionmaker(bind=engine)
-session = Session()
-
-def add_user(user):
-    session.add(user)
-    session.commit()
-
-def get_all_users():
-    return session.query(User).all()
-
 
 class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
     def __init__(self, database_util):
         super(MainWindow, self).__init__()
         self.setupUi(self)
-        self.database_util = database_util
         self.lineEditPasswordStrength.setReadOnly(True)
         self.show()
         self.pushButtonGeneratePassword.clicked.connect(self.generate_password)
@@ -63,16 +27,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.current_length = 0
         self.lineEditRegistrationPassword.installEventFilter(self)
         self.pushButtonRegister.clicked.connect(self.stop_tracking_password)
-        # self.db_folder = 'database'
-        # os.makedirs(self.db_folder, exist_ok=True)
-        #
-        # self.db_path = os.path.join(self.db_folder, 'biometric.db')
-        # self.engine = create_engine(f'sqlite:///{self.db_path}')
-        #
-        # Base.metadata.create_all(self.engine)
-        #
-        # Session = sessionmaker(bind=self.engine)
-        # self.session = Session()
+        self.database_util = database_util
+        self.registrationVariants = []
+        self.pushButtonReset(self.reset_registration)
+        self.pushButtonAuthorize(self.authorize)
 
     def generate_password(self):
         length = self.spinBoxPasswordLength.value()
@@ -119,7 +77,14 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         p = (v * t) / (a * l1)
         self.lineEditPasswordStrength.setText(str(p))
 
-    def start_tracking_password(self):
+    def reset_registration(self):
+        self.registrationVariants.clear()
+        self.lineEditRegistrationPassword.clear()
+        self.lineEditUsername.clear()
+        self.textBrowserRegisterLog.append("Сброс")
+
+    @staticmethod
+    def start_tracking_password():
         stop_tracking()
         start_tracking()
 
@@ -133,31 +98,33 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
 
             if features_from_dict:
                 feature_value = features_from_dict.pop(0)
-                # if feature_value > 10.0:
-                #     continue
                 feature_readable.append((key, feature_value))
                 feature.append(feature_value)
         return feature_readable, feature
 
     def stop_tracking_password(self):
-        durations, intervals = stop_tracking()
+        _, intervals = stop_tracking()
         password = self.lineEditRegistrationPassword.text()
-        # durations_readable, durations_feature = self.transform(durations, password)
         intervals_readable, intervals_feature = self.transform(intervals, password)
-        # print(durations_readable)
-        print(intervals_readable)
         self.register_user(intervals_feature)
 
     def register_user(self, intervals_feature):
-        user = User(username=self.lineEditUsername.text(),
-                    password=self.lineEditRegistrationPassword.text(),
-                    intervals=', '.join(str(f) for f in intervals_feature))
-        add_user(user)
-        # self.update_users_table()
+        self.registrationVariants.append(intervals_feature)
+        self.textBrowserRegisterLog.append(f"{len(self.registrationVariants)}/5 вариантов:{intervals_feature}")
+        if len(self.registrationVariants) == 5:
+            user = User(username=self.lineEditUsername.text(),
+                        password=self.lineEditRegistrationPassword.text(),
+                        intervals=', '.join(str(f) for f in intervals_feature))
+            self.database_util.add_user(user)
+            self.textBrowserRegisterLog.append(f"Успешная регистрация {user.username}")
+            self.update_users_table()
 
     def update_users_table(self):
-        users = get_all_users()
+        users = self.database_util.get_all_users()
         print(users)
+
+    def authorize(self):
+        pass
 
     def eventFilter(self, obj, event):
         if obj == self.lineEditRegistrationPassword:
