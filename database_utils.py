@@ -10,7 +10,6 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, Sequence('user_id_seq'), primary_key=True)
-    username = Column(String(50))
     password = Column(String(50))
     intervals_min = Column(String)
     intervals_max = Column(String)
@@ -38,3 +37,6 @@ class DatabaseUtil:
 
     def select_by_username(self, username):
         return self.session.query(User).filter_by(username=username).first()
+
+    def select_by_id(self, user_id):
+        return self.session.query(User).filter_by(id=user_id).first()

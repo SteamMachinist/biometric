@@ -230,7 +230,7 @@
      </widget>
     </item>
     <item row="1" column="2">
-     <widget class="QFrame" name="frameRegister">
+     <widget class="QFrame" name="frameRegistration">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
         <horstretch>0</horstretch>
@@ -256,34 +256,7 @@
        <enum>QFrame::Plain</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="3" column="1" colspan="2">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="3" column="3">
-        <widget class="QPushButton" name="pushButtonRegister">
-         <property name="text">
-          <string>Зарегистрироваться</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QPushButton" name="pushButtonReset">
-         <property name="text">
-          <string>Сбросить</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0" colspan="4">
+       <item row="3" column="0" colspan="4">
         <widget class="QTextBrowser" name="textBrowserRegisterLog">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
@@ -306,16 +279,6 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="labelUsername">
-         <property name="text">
-          <string>Имя пользователя</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
         <widget class="QLabel" name="labelPassword">
          <property name="text">
           <string>Пароль</string>
@@ -324,12 +287,6 @@
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
-       </item>
-       <item row="1" column="1" colspan="3">
-        <widget class="QLineEdit" name="lineEditUsername"/>
-       </item>
-       <item row="2" column="1" colspan="3">
-        <widget class="QLineEdit" name="lineEditRegistrationPassword"/>
        </item>
        <item row="0" column="0" colspan="4">
         <widget class="QLabel" name="labelRegistration">
@@ -341,11 +298,41 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="1" colspan="2">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="2" column="3">
+        <widget class="QPushButton" name="pushButtonRegister">
+         <property name="text">
+          <string>Зарегистрироваться</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QPushButton" name="pushButtonReset">
+         <property name="text">
+          <string>Сбросить</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1" colspan="3">
+        <widget class="QLineEdit" name="lineEditRegistrationPassword"/>
+       </item>
       </layout>
      </widget>
     </item>
     <item row="3" column="2">
-     <widget class="QFrame" name="frameAuth">
+     <widget class="QFrame" name="frameVerification">
       <property name="minimumSize">
        <size>
         <width>270</width>
@@ -360,7 +347,7 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_6">
        <item row="2" column="0">
-        <widget class="QLabel" name="labelPasswordAuth">
+        <widget class="QLabel" name="labelVerificationPassword">
          <property name="text">
           <string>Пароль</string>
          </property>
@@ -370,10 +357,10 @@
         </widget>
        </item>
        <item row="2" column="1" colspan="2">
-        <widget class="QLineEdit" name="lineEditAuthPassword"/>
+        <widget class="QLineEdit" name="lineEditVerificationPassword"/>
        </item>
        <item row="4" column="0" colspan="3">
-        <widget class="QTextBrowser" name="textBrowserAutorizeLog">
+        <widget class="QTextBrowser" name="textBrowserVerificationLog">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
            <horstretch>0</horstretch>
@@ -395,16 +382,16 @@
         </widget>
        </item>
        <item row="3" column="1" colspan="2">
-        <widget class="QPushButton" name="pushButtonAuthorize">
+        <widget class="QPushButton" name="pushButtonVerify">
          <property name="text">
-          <string>Авторизоваться</string>
+          <string>Верифицировать</string>
          </property>
         </widget>
        </item>
        <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="labelRegistrationAuth">
+        <widget class="QLabel" name="labelVerification">
          <property name="text">
-          <string>Авторизация</string>
+          <string>Верификация</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -412,9 +399,9 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="labelUsernameAuth">
+        <widget class="QLabel" name="labelUserID">
          <property name="text">
-          <string>Имя пользователя</string>
+          <string>ID пользователя</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -422,7 +409,7 @@
         </widget>
        </item>
        <item row="1" column="1" colspan="2">
-        <widget class="QLineEdit" name="lineEditAuthUsername"/>
+        <widget class="QLineEdit" name="lineEditUserID"/>
        </item>
       </layout>
      </widget>

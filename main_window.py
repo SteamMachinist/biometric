@@ -23,18 +23,25 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.setupUi(self)
         self.lineEditPasswordStrength.setReadOnly(True)
         self.show()
+
         self.pushButtonGeneratePassword.clicked.connect(self.generate_password)
         self.pushButtonCalculatePasswordStrength.clicked.connect(self.calculate_password_strength)
         self.current_alphabet = ''
         self.current_length = 0
+
         self.lineEditRegistrationPassword.installEventFilter(self)
-        self.lineEditAuthPassword.installEventFilter(self)
-        self.pushButtonRegister.clicked.connect(self.stop_tracking_password)
+        self.lineEditVerificationPassword.installEventFilter(self)
+
+        self.pushButtonRegister.clicked.connect(self.stop_tracking_registration_password)
+
         self.database_util = database_util
         self.registrationVariants = []
+
         self.pushButtonReset.clicked.connect(self.reset_registration)
-        self.pushButtonAuthorize.clicked.connect(self.authorize)
+        self.pushButtonVerify.clicked.connect(self.verify)
+
         self.currentPassword = ''
+
         self.update_users_table()
         self.tableWidgetUsersList.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
 
@@ -86,7 +93,6 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
     def reset_registration(self):
         self.registrationVariants.clear()
         self.lineEditRegistrationPassword.clear()
-        self.lineEditUsername.clear()
         self.currentPassword = ''
         self.textBrowserRegisterLog.append("Сброс")
 
@@ -109,15 +115,15 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
                 feature.append(feature_value)
         return feature_readable, feature
 
-    def stop_tracking_password(self):
+    def stop_tracking_registration_password(self):
         _, intervals = stop_tracking()
         password = self.lineEditRegistrationPassword.text()
         intervals_readable, intervals_feature = self.transform(intervals, password)
         self.register_user(intervals_feature)
 
-    def stop_tracking_password_auth(self):
+    def stop_tracking_verification_password(self):
         _, intervals = stop_tracking()
-        password = self.lineEditAuthPassword.text()
+        password = self.lineEditVerificationPassword.text()
         intervals_readable, intervals_feature = self.transform(intervals, password)
         return intervals_feature
 
@@ -137,12 +143,11 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         self.textBrowserRegisterLog.append(f"{len(self.registrationVariants)}/5 вариантов:{intervals_feature}")
         if len(self.registrationVariants) == 5:
             mins, maxs = self.form_min_max_vector()
-            user = User(username=self.lineEditUsername.text(),
-                        password=self.lineEditRegistrationPassword.text(),
+            user = User(password=self.lineEditRegistrationPassword.text(),
                         intervals_min=', '.join(str(f) for f in mins),
                         intervals_max=', '.join(str(f) for f in maxs))
             self.database_util.add_user(user)
-            self.textBrowserRegisterLog.append(f"Успешная регистрация {user.username}")
+            self.textBrowserRegisterLog.append(f"Успешная регистрация, ваш ID: {str(user.id)}")
             self.reset_registration()
             self.update_users_table()
 
@@ -155,31 +160,31 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         columns = 2
         self.tableWidgetUsersList.setRowCount(rows)
         self.tableWidgetUsersList.setColumnCount(columns)
-        self.tableWidgetUsersList.setHorizontalHeaderLabels(['Имя пользователя', 'Пароль'])
-        users = [[user.username, user.password] for user in users]
+        self.tableWidgetUsersList.setHorizontalHeaderLabels(['ID пользователя', 'Пароль'])
+        users = [[str(user.id), user.password] for user in users]
         for i in range(rows):
             for j in range(columns):
                 self.tableWidgetUsersList.setItem(i, j, QtWidgets.QTableWidgetItem(users[i][j]))
         self.tableWidgetUsersList.setColumnWidth(0, 130)
         self.tableWidgetUsersList.setColumnWidth(1, 100)
 
-    def reset_auth(self):
-        self.lineEditAuthPassword.clear()
-        self.lineEditAuthUsername.clear()
-        self.textBrowserAutorizeLog.append("Сброс")
+    def reset_verification(self):
+        self.lineEditVerificationPassword.clear()
+        self.lineEditUserID.clear()
+        self.textBrowserVerificationLog.append("Сброс")
 
-    def authorize(self):
-        features = self.stop_tracking_password_auth()
-        username = self.lineEditAuthUsername.text()
-        user = self.database_util.select_by_username(username)
+    def verify(self):
+        features = self.stop_tracking_verification_password()
+        user_id = self.lineEditUserID.text()
+        user = self.database_util.select_by_id(user_id)
         if user is None:
-            self.textBrowserAutorizeLog.append("Имя пользователя не найдено")
-            self.reset_auth()
+            self.textBrowserVerificationLog.append("Пользователь с таким ID не существует")
+            self.reset_verification()
             return
-        password = self.lineEditAuthPassword.text()
+        password = self.lineEditVerificationPassword.text()
         if user.password != password:
-            self.textBrowserAutorizeLog.append("Неверный пароль")
-            self.reset_auth()
+            self.textBrowserVerificationLog.append("Неверный пароль")
+            self.reset_verification()
             return
         mins = [float(value) for value in user.intervals_min.split(', ')]
         maxs = [float(value) for value in user.intervals_max.split(', ')]
@@ -187,10 +192,10 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
         for i in range(len(features)):
             e.append(1 if mins[i] <= features[i] <= maxs[i] else 0)
         if sum(e) / float(len(e)) >= 0.5:
-            self.textBrowserAutorizeLog.append(f"Успешно авторизован в {user.username}")
+            self.textBrowserVerificationLog.append(f"Успешно авторизован с ID: {user.id}")
         else:
-            self.textBrowserAutorizeLog.append("Чужой биометрический признак")
-        self.reset_auth()
+            self.textBrowserVerificationLog.append("Чужой биометрический признак")
+        self.reset_verification()
 
 
 
@@ -200,7 +205,7 @@ class MainWindow(QtWidgets.QMainWindow, MainWindowUI):
                 self.start_tracking_password()
             elif event.type() == event.FocusOut:
                 pass
-        if obj == self.lineEditAuthPassword:
+        if obj == self.lineEditVerificationPassword:
             if event.type() == event.FocusIn:
                 self.start_tracking_password()
             elif event.type() == event.FocusOut:
